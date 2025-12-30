@@ -1,0 +1,79 @@
+db/
+├── __init__.py
+├── pool.py            # Singleton + Object Pool
+├── dependencies.py    # FastAPI DI (per-request connection)
+├── session.py         # Unit of Work (transaction boundary)
+├── health.py          # DB health & readiness checks
+└── types.py           # Shared DB typing / aliases
+
+
+Pattern summary (one glance)
+pool.py        → Singleton + Object Pool
+dependencies.py → Dependency Injection
+session.py     → Unit of Work
+health.py      → Facade
+types.py       → Type Object
+
+ 
+Hard rules (do not violate)
+❌ No SQL in dependencies.py
+❌ No pool creation outside pool.py
+❌ No transaction logic in routes
+❌ No global connection objects
+
+One-line takeaway
+The DB folder owns lifecycle, concurrency, and safety — nothing else.
+
+app/db, including what each file does and how the flow works end‑to‑end.
+1. app/db/schema.py — DB configuration model (Pydantic)
+
+- Holds all DB settings in one place (host, port, name, user, password, pool settings).
+- Uses pydantic-settings, so values come from environment variables prefixed with DB_ (e.g., DB_HOST).
+- Validates values (port range, pool sizes) so bad config fails fast at startup.
+
+2. app/db/pool.py — Engine + session factory (the core of DB access)
+
+- Creates a singleton async SQLAlchemy engine (connection pool).
+- Creates a singleton async sessionmaker (used to open sessions).
+- Uses DatabaseSettings.from_env() to get validated config.
+- Engine options are production‑friendly: pool sizing, timeouts, recycle, and pre‑ping.
+
+3. app/db/dependencies.py — FastAPI dependency (one session per request)
+
+- Defines get_db_session() which yields a single async session.
+- When a request comes in, FastAPI calls this dependency and injects the session into your route.
+
+4. app/db/session.py — Unit of Work (transaction control)
+
+- UnitOfWork wraps a session in a transaction‑like flow:
+    - On success → commit.
+    - On error → rollback.
+    - Always closes the session.
+- Use this when you want explicit transactional boundaries in services.
+
+5. app/db/health.py — Health check
+
+- Runs a simple SELECT 1 query.
+- Used for readiness/health endpoints to confirm the DB is reachable.
+
+6. app/db/types.py — Shared types
+
+- Defines async session type aliases.
+- Helps keep type hints consistent across the DB module.
+
+7. app/db/__init__.py — Public API
+
+- Re‑exports common DB utilities, so other parts of the app can import from app.db.
+
+———
+
+### End‑to‑end flow (what happens in a request)
+
+1. App starts → pool.py creates the async engine and sessionmaker once (singleton).
+2. Request comes in → FastAPI calls get_db_session() from dependencies.py.
+3. Your route/service runs → it uses the session directly or via UnitOfWork.
+4. Success → session commits; Failure → session rolls back.
+5. Session closes → the connection returns to the pool.
+6. Health check → health.py confirms DB connectivity.
+
+———
