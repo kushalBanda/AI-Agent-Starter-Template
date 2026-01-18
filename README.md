@@ -1,153 +1,186 @@
 # Agent BluePrint
 
-> **Note:** This is a high-performance, asynchronous Python template designed for building scalable AI agents and services. It comes pre-configured with industry-standard patterns for configuration, database management, and AI model integration.
+![Python Version](https://img.shields.io/badge/python-3.10%2B-blue?style=for-the-badge&logo=python)
+![License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)
+![Status](https://img.shields.io/badge/status-active-success?style=for-the-badge)
 
-## 🚀 Overview
+> **The definitive asynchronous Python foundation for building production-grade AI agents and scalable microservices.**
 
-This repository serves as a foundational boilerplate for software engineers building production-ready AI applications. It abstracts away the repetitive setup of environment management, database connectivity, and tool orchestration, allowing developers to focus immediately on business logic and agent behaviors.
+## 📖 Introduction
 
-Built with **Modern Python** principles, it emphasizes type safety, asynchronous operations, and modular architecture.
+**Agent BluePrint** is not just another template; it's a curated architectural pattern designed for software engineers who demand precision, scalability, and maintainability.
+
+Building AI agents requires orchestration of complex components: LLM providers, vector stores, relational databases, and observability pipelines. This repository abstracts the boilerplate, providing a **type-safe**, **modular**, and **async-native** foundation so you can focus on the intelligence, not the infrastructure.
+
+## 🏗️ Architecture
+
+This project enforces a clean separation of concerns, ensuring your application remains testable and adaptable as it grows.
+
+### Database Architecture
+
+The database layer (`db/`) uses a modular factory pattern to support multiple backends (PostgreSQL, MySQL, SQLite) while providing a unified session management interface via dependency injection and Unit of Work patterns.
+
+```mermaid
+graph TD
+    subgraph Configuration
+        Settings[settings.py]
+        Types[types.py]
+    end
+
+    subgraph Core
+        Engine[engine.py]
+        Factory[factory.py]
+        Interface[interface.py]
+        Health[health.py]
+    end
+
+    subgraph Session Layer
+        Dependencies[dependencies.py]
+        UoW[unit_of_work.py]
+    end
+    
+    subgraph Connectors
+        PG[postgres.py]
+        MySQL[mysql.py]
+        SQLite[sqlite.py]
+    end
+
+    Settings --> Factory
+    Settings --> Interface
+    
+    Interface -.-> PG
+    Interface -.-> MySQL
+    Interface -.-> SQLite
+    
+    Factory --> PG
+    Factory --> MySQL
+    Factory --> SQLite
+    
+    Engine --> Factory
+    Engine --> Settings
+    
+    Dependencies --> Engine
+    UoW --> Engine
+```
+
+### Directory Structure
+
+```text
+/
+├── ai/                 # AI capabilities & Tool definitions
+│   ├── prompts/        # System prompts & personas
+│   └── tools/          # Agent capabilities (File I/O, Search, etc.)
+├── config/             # Type-safe Configuration (Pydantic)
+├── db/                 # Database Module
+│   ├── configuration/  # Settings & Type definitions
+│   ├── connectors/     # Database-specific implementations
+│   ├── core/           # Engine, Factory, & Interface logic
+│   └── session/        # Dependency Injection & Unit of Work
+├── telemetry/          # Observability & Structured Logging
+└── .env.example        # Environment template
+```
 
 ## ✨ Key Features
 
-* **Robust Configuration Management**: Centralized, type-safe environment configuration using `pydantic-settings` and `.env` files.
-* **Async Database Layer:** Pre-configured SQLAlchemy 2.0+ setup with asynchronous session management and connection pooling.
-* **AI Tooling Interface:** Structured directory for defining and registering AI tools (compatible with agents like Claude or OpenAI Assistants).
-* **Telemetry & Logging:** Integrated structured logging via `rich` for beautiful console output and easy debugging.
-* **Modular Architecture:** Clean separation of concerns between configuration, database, AI logic, and observability.
+*   **⚡ Async-First Core**: Built on top of `SQLAlchemy 2.0+` (AsyncIO) and `FastAPI` patterns for high-concurrency performance.
+*   **🛡️ Type-Safe Configuration**: Leverages `pydantic-settings` for robust environment validation. Fail fast if your config is wrong.
+*   **🧩 Modular Database Layer**: Switch between PostgreSQL, MySQL, or SQLite via simple config changes. No code refactoring required.
+*   **🧠 AI-Ready**: Dedicated structures for `prompts` and `tools`, compatible with modern agentic frameworks (LangChain, AutoGen, Claude).
+*   **🔍 Observability**: Pre-configured structured logging using `rich` for crystal-clear development logs and production traceability.
 
-## 🛠️ Project Structure
-
-```text
-starterTemplate/
-├── ai/                 # AI capabilities and tool definitions
-│   ├── prompts/        # System prompts and agent personas
-│   └── tools/          # Executable tools for agents (File I/O, Search, etc.)
-├── config/             # Application configuration & Environment variables
-├── db/                 # Database schema, dependencies, and connection pooling
-├── telemetry/          # Logging and observability configuration
-└── .gitignore          # Git ignore rules
-```
-
-## ⚡ Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
 
-* Python 3.10+
-* PostgreSQL (optional, for database features)
-* Git
+*   **Python 3.10+**
+*   **Git**
+*   **PostgreSQL** (Recommended for production)
 
-### 1. Installation
+### Installation
 
-Clone the repository and set up your virtual environment.
+1.  **Clone the repository**
+    ```bash
+    git clone https://github.com/your-username/agent-blueprint.git
+    cd agent-blueprint
+    ```
 
-```bash
-# Clone the repository
-git clone <repository-url>
-cd starterTemplate
+2.  **Set up Virtual Environment**
+    ```bash
+    python -m venv venv
+    source venv/bin/activate  # Windows: venv\Scripts\activate
+    ```
 
-# Create a virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+3.  **Install Dependencies**
+    ```bash
+    pip install sqlalchemy[asyncio] pydantic-settings python-dotenv rich asyncpg aiomysql aiosqlite
+    ```
 
-# Install dependencies (inferred)
-pip install fastapi sqlalchemy pydantic-settings python-dotenv rich langchain-core asyncpg
-```
+### Configuration
 
-### 2. Configuration
-
-Create a `.env` file in the root directory. This project uses a strict configuration schema to ensure all necessary variables are present.
-
-**`.env` Example:**
+Create a `.env` file in the root directory.
 
 ```ini
-# General
+# --- General ---
 ENV=development
-PRODUCT_NAME=MyAIApp
+PRODUCT_NAME=AgentBluePrint
 APP_URL=http://localhost:8000
-LANDING_URL=http://localhost:3000
 
-# Database (PostgreSQL)
+# --- Database ---
+# Supported Types: postgres, mysql, sqlite
+DB_TYPE=postgres
 DB_HOST=localhost
 DB_PORT=5432
-DB_NAME=myapp_db
+DB_NAME=agent_db
 DB_USER=postgres
 DB_PASSWORD=secret
 
-# AI Providers
+# --- AI Providers ---
 OPENAI_API_KEY=sk-...
-OPENAI_MODEL=gpt-4-turbo
 ANTHROPIC_API_KEY=sk-ant-...
-ANTHROPIC_MODEL=claude-3-opus
-
-# GitHub Integration (Optional)
-GITHUB_TOKEN=ghp_...
-GITHUB_BASE_URL=https://api.github.com
 ```
 
-### 3. Usage
+## 💻 Usage
 
-#### Database Session
+### Dependency Injection (FastAPI)
 
-The project provides a FastAPI-ready dependency for database sessions.
+Inject a database session directly into your routes or controllers.
 
 ```python
-from app.db.dependencies import get_db_session
+from db import get_db_session
 from sqlalchemy.ext.asyncio import AsyncSession
 
-async def my_endpoint(session: AsyncSession = Depends(get_db_session)):
-    # Use session here
-    pass
+async def create_user(session: AsyncSession = Depends(get_db_session)):
+    # Session is automatically created and closed
+    user = await session.get(User, 1)
+    return user
 ```
 
-#### AI Tools
+### Atomic Transactions (Unit of Work)
 
-Tools are defined in `ai/tools/` and can be compiled for use with LangChain or other agent frameworks.
+Ensure data integrity with the Unit of Work context manager.
 
 ```python
-from ai.tools.tools import tools_compiler
-from pathlib import Path
+from db import UnitOfWork
 
-# Initialize tools bound to a specific path
-project_root = Path("/path/to/analyze")
-available_tools = tools_compiler(project_root)
+async def process_order(order_id: str):
+    async with UnitOfWork() as session:
+        # All operations here are atomic
+        repo = OrderRepository(session)
+        await repo.mark_paid(order_id)
+        await repo.ship_items(order_id)
+    # Automatically committed if successful, rolled back on error
 ```
-
-## 📘 Configuration Reference
-
-### Environment Variables (`config/env.py`)
-
-| Variable              | Description                                             | Required |
-| :-------------------- | :------------------------------------------------------ | :------: |
-| `ENV`               | Environment mode (e.g.,`development`, `production`) |   Yes   |
-| `PRODUCT_NAME`      | Name of the application                                 |   Yes   |
-| `APP_URL`           | Base URL of the application backend                     |   Yes   |
-| `OPENAI_API_KEY`    | API Key for OpenAI services                             |   Yes   |
-| `ANTHROPIC_API_KEY` | API Key for Anthropic services                          |   Yes   |
-
-### Database Settings (`db/schema.py`)
-
-Database settings are automatically prefixed with `DB_`.
-
-| Variable         | Default       | Description                     |
-| :--------------- | :------------ | :------------------------------ |
-| `DB_HOST`      | `localhost` | Database server host            |
-| `DB_PORT`      | `5432`      | Database server port            |
-| `DB_NAME`      | `app`       | Database name                   |
-| `DB_POOL_SIZE` | `10`        | SQLAlchemy connection pool size |
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please follow these steps:
+We welcome contributions! Please see `CONTRIBUTING.md` for details.
 
-1. Fork the repository.
-2. Create a feature branch: `git checkout -b feature/amazing-feature`.
-3. Commit your changes: `git commit -m 'Add amazing feature'`.
-4. Push to the branch: `git push origin feature/amazing-feature`.
-5. Open a Pull Request.
+1.  Fork the repo
+2.  Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3.  Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4.  Push to the branch (`git push origin feature/AmazingFeature`)
+5.  Open a Pull Request
 
 ## 📄 License
 
-This project is licensed under the [MIT License](LICENSE).
-
----
+Distributed under the MIT License. See `LICENSE` for more information.
